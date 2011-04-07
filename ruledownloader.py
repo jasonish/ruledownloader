@@ -35,8 +35,8 @@ import logging
 import hashlib
 import re
 import getopt
-import tempfile
 import shutil
+import string
 
 def getFileMd5(filename):
     """ Return the hex md5 of the given filename. """
@@ -70,14 +70,17 @@ def getRemoteMd5(url):
         return None
 
 def getRulesets():
+    """ Get the set of configured rulesets. """
+
     rulesets = {}
-    for r in [r.strip() for r in config.get("general", "rulesets").split(",")]:
-        section = "ruleset %s" % r
+
+    for section in [s for s in config.sections() if s.startswith("ruleset ")]:
+        name = string.split(section, " ", maxsplit=1)[1]
         if config.has_section(section):
             if config.getboolean(section, "enabled"):
-                rulesets[r] = {}
-                rulesets[r]["name"] = r
-                rulesets[r]["url"] = config.get(section, "url")
+                rulesets[name] = {}
+                rulesets[name]["name"] = name
+                rulesets[name]["url"] = config.get(section, "url")
     return rulesets
 
 def downloadRuleset(ruleset):
@@ -143,17 +146,16 @@ def downloadRuleset(ruleset):
     os.symlink(timestamp, latestLink)
 
 def usage(output):
-    print >>output, ""
-    print >>output, "USAGE: %s [options] [ruleset]" % sys.argv[0]
-    print >>output, ""
-    print >>output, "    Options:"
-    print >>output, "        -c <filename> Configuration file."
-    print >>output, "        -D            Enable debug output."
-    print >>output, ""
-    print >>output, """\
-    If one or more ruleset names are provided on the command then they will
-    be the only ones checked for updates."""
-    print >>output, ""
+    print >>output, """
+USAGE: %s [options] [ruleset]
+
+Options:
+        -c <filename> Configuration file.
+        -D            Enable debug output.
+
+If one or more ruleset names are provided on the command then they will
+be the only ones checked for updates.
+""" % sys.argv[0]
 
 def main():
     global config
