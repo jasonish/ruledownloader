@@ -84,7 +84,7 @@ def downloadRuleset(ruleset):
     name = ruleset["name"]
     url = ruleset["url"]
     filename = extractFilenameFromUrl(ruleset["url"])
-
+    remoteMd5 = None
     latestFilename = "%s/%s/latest/%s" % (destdir, name, filename)
     if os.path.exists(latestFilename):
         md5Url = url.replace(filename, filename + ".md5")
@@ -111,6 +111,16 @@ def downloadRuleset(ruleset):
         logging.error("Failed to download %s.", url)
         return
 
+    tmpMd5 = getFileMd5(tmpDestFile)
+
+    if remoteMd5:
+        logging.info("Verifying checksum.")
+        if tmpMd5 == remoteMd5:
+            logging.info("OK.")
+        else:
+            logging.info("FAIL.")
+            return
+
     # Compare to the last file.
     if os.path.exists(latestFilename):
         latestMd5 = getFileMd5(latestFilename)
@@ -121,6 +131,9 @@ def downloadRuleset(ruleset):
 
     logging.debug("Copying %s to %s.", tmpDestFile, destFile)
     shutil.copy(tmpDestFile, destFile)
+
+    # Write out the md5.
+    open(destFile + ".md5", "w").write(tmpMd5)
 
     # Update symlink.
     logging.debug("Updating latest symlink to %s/%s.", destdir, name)
