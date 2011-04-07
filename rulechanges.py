@@ -121,11 +121,11 @@ def main():
     for gidsid in rules:
         print("- %s: %s" % (gidsid, getRuleMsg(newRuleDb[gidsid])))
 
-    # Delete rules.
+    # Deleted rules.
     rules = set(oldRuleDb).difference(set(newRuleDb))
     print("\nDeleted rules: (%d)" % len(rules))
     for gidsid in rules:
-        print("- %s: %s" % (gidsid, getRuleMsg(newRuleDb[gidsid])))
+        print("- %s: %s" % (gidsid, getRuleMsg(oldRuleDb[gidsid])))
 
     # Modified rules.
     rules = getModifiedRules(oldRuleDb, newRuleDb)
