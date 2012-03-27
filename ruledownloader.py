@@ -121,13 +121,19 @@ def getRulesets():
                 rulesets[name]["url"] = config.get(section, "url")
     return rulesets
 
-def downloadRuleset(ruleset):
+def download_ruleset(ruleset):
     name = ruleset["name"]
     url = ruleset["url"]
     filename = extractFilenameFromUrl(ruleset["url"])
     remoteMd5 = None
-    latestFilename = "%s/%s/latest/%s" % (destdir, name, filename)
-    if os.path.exists(latestFilename):
+
+    latest = None
+    latestFilename = None
+    if os.path.exists("%s/%s/latest" % (destdir, name)):
+        latest = os.readlink("%s/%s/latest" % (destdir, name))
+        latestFilename = "%s/%s/%s/%s" % (destdir, name, latest, filename)
+
+    if latestFilename and os.path.exists(latestFilename):
         md5Url = url.replace(filename, filename + ".md5")
         remoteMd5 = getRemoteMd5(md5Url)
         if not remoteMd5:
@@ -169,7 +175,7 @@ def downloadRuleset(ruleset):
         latestMd5 = getFileMd5(latestFilename)
         newMd5 = getFileMd5(tmpDestFile)
         if latestMd5 == newMd5:
-            logging.debug("Ruleset has not changed, discarding download.")
+            logging.info("Ruleset has not changed, discarding download.")
             return
 
     logging.debug("Copying %s to %s.", tmpDestFile, destFile)
@@ -184,6 +190,19 @@ def downloadRuleset(ruleset):
     if os.path.exists(latestLink):
         os.unlink(latestLink)
     os.symlink(timestamp, latestLink)
+
+    # Generate a report.
+    if latestFilename and os.path.exists(latestFilename):
+        report_filename = "%s/%s/latest/change_log.txt" % (
+            destdir, name)
+        logging.info("Writing change report to %s." % (report_filename))
+        os.system("%s %s/rulechanges.py %s %s/%s > %s" % (
+                sys.executable,
+                os.path.dirname(sys.argv[0]),
+                latestFilename,
+                latestLink,
+                filename,
+                report_filename))
 
 def usage(output):
     print >>output, """
@@ -238,9 +257,9 @@ def main():
     for key in rulesets:
         if selectedRulesets and key not in selectedRulesets:
             logging.debug("Skipping ruleset %s.", key)
-            continue
-        logging.info("Processing ruleset %s.", key)
-        downloadRuleset(rulesets[key])
+        else:
+            logging.info("Processing ruleset %s.", key)
+            download_ruleset(rulesets[key])
 
 if __name__ == '__main__':
     sys.exit(main())
