@@ -38,6 +38,44 @@ import getopt
 import shutil
 import string
 
+try:
+    import progressbar
+    has_progressbar = True
+except:
+    has_progressbar = False
+
+class NullProgressMeter(object):
+
+    def update(self, transferred, block_size, total_size):
+        pass
+
+    def done(self):
+        pass
+
+class FancyProgressMeter(object):
+
+    def __init__(self):
+        self.bar = progressbar.ProgressBar(
+            widgets=[progressbar.Percentage(),
+                     progressbar.Bar()],
+            maxval=100)
+        self.bar.start()
+
+    def update(self, transferred, block_size, total_size):
+        val = int((transferred * block_size) / float(total_size) * 100)
+        self.bar.update(val)
+
+    def done(self):
+        self.bar.finish()
+
+def get_progress_meter():
+    if not sys.stdout.isatty():
+        return NullProgressMeter()
+    elif has_progressbar:
+        return FancyProgressMeter()
+    else:
+        return NullProgressMeter()
+
 def getFileMd5(filename):
     """ Return the hex md5 of the given filename. """
     m = hashlib.md5()
@@ -108,11 +146,13 @@ def downloadRuleset(ruleset):
         os.makedirs(os.path.dirname(destFile))
     logging.info("Downloading %s to %s.", url, destFile)
     try:
-        tmpDestFile, headers = urllib.urlretrieve(url)
+        meter = get_progress_meter()
+        tmpDestFile, headers = urllib.urlretrieve(url, reporthook=meter.update)
+        meter.done()
         logging.debug("Downloaded to %s.", tmpDestFile)
     except Exception, e:
         logging.error("Failed to download %s.", url)
-        return
+        raise
 
     tmpMd5 = getFileMd5(tmpDestFile)
 
@@ -181,7 +221,8 @@ def main():
     selectedRulesets = args
 
     logging.basicConfig(
-        level=logLevel, format="[%(asctime)s] %(levelname)-6s: %(message)s")
+        level=logLevel, format="[%(asctime)s] %(levelname)-6s: %(message)s",
+        stream=sys.stdout)
 
     if not os.path.exists(configFilename):
         logging.error("Configuration file does not exist: %s", configFilename)
