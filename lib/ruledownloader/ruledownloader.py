@@ -59,6 +59,22 @@ class NullProgressMeter(object):
     def done(self):
         pass
 
+class SimpleProgressMeter(object):
+
+    def __init__(self):
+        self.width = 9
+
+    def update(self, transferred, block_size, total_size):
+        val = int((transferred * block_size) / float(total_size) * 100)
+        sys.stdout.write("\b" * (self.width + 1))
+        format = "%%%ds%%%%" % (self.width)
+        sys.stdout.write(format % (val))
+        sys.stdout.flush()
+
+    def done(self):
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+
 class FancyProgressMeter(object):
 
     def __init__(self):
@@ -81,7 +97,7 @@ def get_progress_meter():
     elif has_progressbar:
         return FancyProgressMeter()
     else:
-        return NullProgressMeter()
+        return SimpleProgressMeter()
 
 def getFileMd5(filename):
     """ Return the hex md5 of the given filename. """
