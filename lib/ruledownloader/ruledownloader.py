@@ -44,6 +44,8 @@ try:
 except:
     has_progressbar = False
 
+import rulechanges
+
 valid_content_types = ["application/x-gzip",
                        "application/x-tar",
                        "application/octet-stream",
@@ -205,13 +207,10 @@ def download_ruleset(ruleset):
         report_filename = "%s/%s/latest/change_log.txt" % (
             destdir, name)
         logging.info("Writing change report to %s." % (report_filename))
-        os.system("%s %s/rulechanges.py %s %s/%s > %s" % (
-                sys.executable,
-                os.path.dirname(sys.argv[0]),
-                latestFilename,
-                latestLink,
-                filename,
-                report_filename))
+        with open(report_filename, "w") as report_out:
+            rulechanges.main(
+                (latestFilename, "%s/%s" % (latestLink, filename)),
+                report_out)
 
 def usage(output):
     print >>output, """
