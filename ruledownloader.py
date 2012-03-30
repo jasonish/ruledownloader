@@ -44,6 +44,11 @@ try:
 except:
     has_progressbar = False
 
+valid_content_types = ["application/x-gzip",
+                       "application/x-tar",
+                       "application/octet-stream",
+                       "binary/octet-stream"]
+
 class NullProgressMeter(object):
 
     def update(self, transferred, block_size, total_size):
@@ -160,6 +165,10 @@ def download_ruleset(ruleset):
         logging.error("Failed to download %s.", url)
         raise
 
+    if headers["content-type"] not in valid_content_types:
+        logging.error("Invalid content type: %s", headers["content-type"])
+        return
+
     tmpMd5 = getFileMd5(tmpDestFile)
 
     if remoteMd5:
@@ -171,7 +180,7 @@ def download_ruleset(ruleset):
             return
 
     # Compare to the last file.
-    if os.path.exists(latestFilename):
+    if latestFilename and os.path.exists(latestFilename):
         latestMd5 = getFileMd5(latestFilename)
         newMd5 = getFileMd5(tmpDestFile)
         if latestMd5 == newMd5:
